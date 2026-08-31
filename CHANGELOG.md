@@ -8,7 +8,7 @@
   manual Hancom 2022 release gate.
 - Documented the safe-mode and experimental foreground connection paths.
 
-## 0.3.0rc1 — public-release candidate
+## 0.3.0rc1 — source candidate (not tagged)
 
 - Renamed the distributable package and MCP server to `hwp-live-safe`.
 - Added portable MCP configuration examples and excluded machine-specific
