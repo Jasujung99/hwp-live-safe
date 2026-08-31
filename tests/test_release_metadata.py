@@ -19,6 +19,9 @@ def test_public_distribution_metadata_matches_runtime_version() -> None:
     assert project["name"] == "hwp-live-safe"
     assert project["version"] == __version__
     assert project["scripts"]["hwp-live-safe"] == "hwp_live.server:main"
+    assert project["urls"]["Repository"] == "https://github.com/Jasujung99/hwp-live-safe"
+    assert "Programming Language :: Python :: 3.11" in project["classifiers"]
+    assert "Programming Language :: Python :: 3.12" in project["classifiers"]
 
 
 def test_public_config_examples_are_portable() -> None:

@@ -2,9 +2,37 @@
 
 > **Pre-release candidate (`0.3.0rc1`)** — a local, preview-first MCP server for a new visible Hancom Office 2022 document on Windows.
 
+[Repository](https://github.com/Jasujung99/hwp-live-safe) · [Issues](https://github.com/Jasujung99/hwp-live-safe/issues) · [Security reports](https://github.com/Jasujung99/hwp-live-safe/security/advisories/new)
+
 HWP Live Safe gives MCP-compatible assistants a deliberately narrow way to draft a document without silently touching an arbitrary user file. It opens a new unsaved Hancom document that it owns, reads its current text, makes a short-lived preview, and applies only the approved preview.
 
 It is intended for careful drafting, personal-form entry, and reviewable insertions. It is **not** an editor for arbitrary existing `.hwp`/`.hwpx` files.
+
+## How the safe connection works
+
+```mermaid
+flowchart LR
+    C["Codex · Claude Code · Cursor · Grok Build<br/>or another local MCP client"]
+    S["HWP Live Safe<br/>local stdio MCP server"]
+    P["Preview state<br/>revision · expiry · approval"]
+    B["Native safe backend<br/>HWPFrame automation"]
+    N["New visible, unsaved<br/>Hancom document"]
+    L[("Local profile store")]
+    F["Experimental foreground typing<br/>short literal insertion only"]
+    E["User-selected existing<br/>Hancom window"]
+
+    C -->|"stdio tools"| S
+    S --> P
+    P -->|"approved preview"| B
+    B -->|"creates and owns"| N
+    L -->|"value stays local until insertion"| S
+    S -.->|"separate explicit mode"| F
+    F -.->|"keyboard input; no read-back"| E
+```
+
+The solid path is the native safe mode. It creates a fresh document and never
+attaches to an existing user file. The dotted path is a separate experimental
+typing aid; it cannot read the target document or provide verified Undo.
 
 ## What it does
 
@@ -24,6 +52,20 @@ It is intended for careful drafting, personal-form entry, and reviewable inserti
 - Run an HTTP server or call an LLM, analytics service, or cloud API itself.
 
 Read [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) before using it with an important document.
+
+## Verification status
+
+| Check | Status for `0.3.0rc1` |
+|---|---|
+| Unit tests on the in-memory backend | Automated on Windows/Python 3.11 and 3.12 |
+| Fake stdio MCP discovery and 15-tool smoke test | Automated |
+| Wheel contents and `hwp-live-safe` entry point | Automated |
+| Tracked-profile, local-config, path, and token scan | Automated |
+| Real Hancom Office 2022 UI release gate | **Not yet recorded; release remains blocked** |
+
+See the [release checklist](docs/RELEASE_CHECKLIST.md) for the disposable-document
+test procedure. Existing-file editing is unsupported by design, not an
+unverified capability.
 
 ## Requirements
 
@@ -121,6 +163,10 @@ $env:PYTHONDONTWRITEBYTECODE = "1"
 ## Security and privacy
 
 See [SECURITY.md](SECURITY.md). HWP Live Safe itself uses local stdio and does not make network calls. Your MCP client may still send tool results or document text to a model provider, so the end-to-end privacy boundary depends on the client and provider you choose.
+
+Use [GitHub private vulnerability reporting](https://github.com/Jasujung99/hwp-live-safe/security/advisories/new) for security-sensitive findings. General questions about choosing or combining HWP engines belong in the [HWP AI Bridge discussions](https://github.com/Jasujung99/hwp-ai-bridge/discussions); reproducible HWP Live Safe defects belong in this repository's [issue tracker](https://github.com/Jasujung99/hwp-live-safe/issues).
+
+Contributions are welcome through pull requests; read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting one.
 
 ## License and trademark notice
 

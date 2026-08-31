@@ -14,11 +14,18 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Office/Business :: Office Suites",
 ]
 dependencies = [
   "mcp>=2.1,<3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Jasujung99/hwp-live-safe"
+Repository = "https://github.com/Jasujung99/hwp-live-safe"
+Issues = "https://github.com/Jasujung99/hwp-live-safe/issues"
+Changelog = "https://github.com/Jasujung99/hwp-live-safe/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [

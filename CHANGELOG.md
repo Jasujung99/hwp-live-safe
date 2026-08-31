@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added Windows/Python 3.11 and 3.12 public-baseline CI, wheel inspection, and
+  tracked-file privacy checks.
+- Added repository governance templates, monthly dependency updates, and a
+  manual Hancom 2022 release gate.
+- Documented the safe-mode and experimental foreground connection paths.
+
 ## 0.3.0rc1 — public-release candidate
 
 - Renamed the distributable package and MCP server to `hwp-live-safe`.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/Jasujung99/hwp-live-safe/security/advisories/new
+    about: Never disclose documents, profile values, tokens, or personal data in a public issue.
+  - name: Ask a usage or engine-selection question
+    url: https://github.com/Jasujung99/hwp-ai-bridge/discussions
+    about: Use the shared bridge forum for general setup and direct/safe/hybrid-mode questions.

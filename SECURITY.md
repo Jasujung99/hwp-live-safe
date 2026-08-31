@@ -7,14 +7,12 @@ visible Hancom window as part of the trusted local boundary.
 ## Reporting a vulnerability
 
 Do not put real documents, profile files, window titles, access tokens, or
-personal data in a public issue. Before the public repository is announced,
-this release candidate is for trusted testing only. The public repository must
-enable GitHub private vulnerability reporting before its first public release.
-
-Until that channel is enabled, report only a redacted reproduction privately to
-the maintainer. A report should include the release version, Windows and
-Hancom version, the smallest non-sensitive reproduction, expected behavior,
-and observed behavior.
+personal data in a public issue. Use
+[GitHub private vulnerability reporting](https://github.com/Jasujung99/hwp-live-safe/security/advisories/new)
+for a confidential report. Include the release version, Windows and Hancom
+version, the smallest non-sensitive reproduction, expected behavior, and
+observed behavior. If that private form is unavailable, do not fall back to a
+public issue; wait for the repository owner to restore the private channel.
 
 ## Safe operating assumptions
 

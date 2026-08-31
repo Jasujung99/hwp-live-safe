@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose a narrowly scoped safe-mode improvement.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        General questions about choosing or combining HWP engines belong in HWP AI Bridge Discussions. Do not include real document or profile data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Describe the workflow problem using dummy content.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired safe outcome
+      description: Explain the expected preview, approval, and failure behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Intended scope
+      options:
+        - Native safe mode for a new unsaved document
+        - Experimental foreground typing
+        - Packaging, client configuration, or documentation
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Safety boundaries
+      options:
+        - label: This request does not require silently opening, overwriting, deleting, or closing a user file.
+          required: true
+        - label: I used no personal or confidential data in this request.
+          required: true

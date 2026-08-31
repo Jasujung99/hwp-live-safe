@@ -1,0 +1,53 @@
+name: Public baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    name: Windows / Python ${{ matrix.python-version }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install locked development environment
+        run: uv sync --extra dev --locked
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          $env:PYTHONDONTWRITEBYTECODE = "1"
+          uv run python -m pytest -p no:cacheprovider
+
+      - name: Exercise fake stdio MCP server
+        shell: pwsh
+        run: |
+          $env:PYTHONDONTWRITEBYTECODE = "1"
+          uv run python tests/mcp_smoke.py
+
+      - name: Check public repository privacy and examples
+        run: uv run python scripts/check_public_repo.py
+
+      - name: Build wheel and source distribution
+        run: uv build
+
+      - name: Inspect built package artifacts
+        run: uv run python scripts/check_wheel.py
