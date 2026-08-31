@@ -7,6 +7,11 @@ registration supplied by Hancom Office 2022. It starts a visible, new,
 unsaved document that it owns. Other Hancom versions and existing document
 attachment are not supported claims.
 
+The automated public baseline and the fail-closed existing-window preflight
+have passed. The complete real-Hancom manual gate is not yet recorded, so this
+source candidate has no tag or GitHub Release and is not a general support
+claim for Hancom Office 2022 installations.
+
 ## Native safe mode
 
 - It will not open, save, save as, close, export, delete, or overwrite a user
