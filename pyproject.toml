@@ -1,0 +1,41 @@
+[project]
+name = "hwp-live-safe"
+version = "0.3.0rc1"
+description = "A preview-first, local MCP server for a new visible Hancom Office 2022 document."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "HWP Live Safe contributors" }]
+keywords = ["hancom", "hangul", "hwp", "mcp", "privacy", "windows"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Win32 (MS Windows)",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Office/Business :: Office Suites",
+]
+dependencies = [
+  "mcp>=2.1,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+hwp-live-safe = "hwp_live.server:main"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hwp_live"]
+force-include = { "src/hwp_live/hwp_com_worker.ps1" = "hwp_live/hwp_com_worker.ps1" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

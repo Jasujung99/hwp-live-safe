@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "hwp-live-safe": {
+      "command": "hwp-live-safe",
+      "args": [],
+      "env": {
+        "PYTHONUTF8": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      }
+    }
+  }
+}

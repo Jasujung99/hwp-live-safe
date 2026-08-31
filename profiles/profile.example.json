@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "label": "내 기본 프로필",
+  "fields": {
+    "full_name": {
+      "label": "성명",
+      "sensitivity": "personal",
+      "value": null
+    },
+    "birth_date": {
+      "label": "생년월일",
+      "sensitivity": "personal",
+      "value": null
+    },
+    "phone": {
+      "label": "휴대전화",
+      "sensitivity": "contact",
+      "value": null
+    },
+    "email": {
+      "label": "이메일",
+      "sensitivity": "contact",
+      "value": null
+    },
+    "address": {
+      "label": "주소",
+      "sensitivity": "personal",
+      "value": null
+    },
+    "school": {
+      "label": "최종 학력",
+      "sensitivity": "professional",
+      "value": null
+    }
+  }
+}
