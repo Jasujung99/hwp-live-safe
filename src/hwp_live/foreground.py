@@ -94,8 +94,37 @@ class _KeyBdInput(ctypes.Structure):
     ]
 
 
+class _MouseInput(ctypes.Structure):
+    """The largest native INPUT union member on Windows."""
+
+    _fields_ = [
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class _HardwareInput(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", wintypes.DWORD),
+        ("wParamL", wintypes.WORD),
+        ("wParamH", wintypes.WORD),
+    ]
+
+
 class _InputUnion(ctypes.Union):
-    _fields_ = [("ki", _KeyBdInput)]
+    # INPUT is sized for every union member even when SendInput carries only
+    # keyboard events.  Keeping the full union matters: a 64-bit process
+    # otherwise passes 32 instead of the required 40-byte cbSize and Windows
+    # rejects the entire batch with ERROR_INVALID_PARAMETER.
+    _fields_ = [
+        ("mi", _MouseInput),
+        ("ki", _KeyBdInput),
+        ("hi", _HardwareInput),
+    ]
 
 
 class _Input(ctypes.Structure):
