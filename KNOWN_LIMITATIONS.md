@@ -2,15 +2,23 @@
 
 ## Supported environment
 
-This pre-release candidate is developed for Windows with the 32-bit automation
-registration supplied by Hancom Office 2022. It starts a visible, new,
-unsaved document that it owns. Other Hancom versions and existing document
-attachment are not supported claims.
+The native safe mode was manually witnessed on 2026-09-02 with Windows 10 Home
+22H2 (build `22621.4317`), Hancom Office 2022 executable `12.0.0.850`, Python
+`3.12.13`, MCP Python SDK `2.1.1`, Codex CLI `0.147.0`, and the 32-bit
+`HWPFrame.HwpObject` automation registration. The native-safe evidence used
+source commit `72cda61`; the experimental foreground path was re-witnessed
+after its fixes at `0436e9a`. The test used a new unsaved document and dummy
+profile data.
 
-The automated public baseline and the fail-closed existing-window preflight
-have passed. The complete real-Hancom manual gate is not yet recorded, so this
-source candidate has no tag or GitHub Release and is not a general support
-claim for Hancom Office 2022 installations.
+The automated public baseline and complete scoped manual gate passed for that
+configuration. The manual evidence covers native document creation; reviewed
+text and table preview/apply/read-back; dummy-profile insertion privacy;
+stale-preview rejection; safe Undo; and one short experimental foreground
+insertion at a user-confirmed collapsed caret.
+
+This is not a broad compatibility claim. Other Windows editions/builds, Hancom
+versions or architectures, Python/MCP/client versions, and attachment to an
+existing document remain unverified or unsupported.
 
 ## Native safe mode
 

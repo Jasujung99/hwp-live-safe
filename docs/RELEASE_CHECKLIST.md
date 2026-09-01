@@ -4,11 +4,11 @@ This checklist gates tags and GitHub releases. `0.3.0rc1` remains a source
 pre-release candidate until every required automated and manual item is
 recorded without personal data.
 
-## Recorded public baseline — 2026-09-01
+## Recorded public baseline — 2026-09-02
 
 - The [Windows public-baseline run](https://github.com/Jasujung99/hwp-live-safe/actions/runs/33445910351)
   passed on Python 3.11 and 3.12.
-- A clean local rerun passed 22 tests, the 15-tool fake MCP smoke, the 39-file
+- A clean local rerun passed 27 tests, the 15-tool fake MCP smoke, the 39-file
   public-repository scan, package build, and wheel/sdist inspection.
 - Host preflight found Windows build `22621.4317`, Hancom executable version
   `12.0.0.850`, Python `3.12.13`, MCP `2.1.1`, a registered HWP COM class, and
@@ -28,27 +28,41 @@ recorded without personal data.
 - [x] The public-repository scan finds no tracked local configuration, profile
       values, personal Windows paths, private keys, or recognizable tokens.
 
-## Manual Hancom Office 2022 gate
+## Manual Hancom Office 2022 gate — 2026-09-02
 
-Close every important Hancom window first. Use only a new blank document and a
-profile containing dummy values. Do not save the generated document.
+The gate used a new blank unsaved document and dummy profile values. No
+existing Hancom window was open when native safe mode started, and the
+generated document was not saved. Native safe mode was witnessed at
+`72cda61`. The later runtime changes `514477c` and `0436e9a` are confined to
+the experimental foreground backend and its tests; the foreground item below
+was re-witnessed at `0436e9a`.
 
-- [ ] Record Windows edition/build, Hancom Office/Hancom 2022 build, Python
-      version, MCP client/version, and installation method.
-- [ ] `hwp_start_new_document` creates one new visible unsaved document and
-      does not attach to a pre-existing document.
-- [ ] Text preview/apply/read-back works for size, bold, and alignment.
-- [ ] A non-empty table preview/apply/read-back works within documented limits.
-- [ ] A dummy profile field is absent from list/preview responses and appears
+| Item | Recorded value |
+|---|---|
+| Windows | Windows 10 Home 22H2, build `22621.4317` |
+| Hancom Office 2022 executable | `12.0.0.850` |
+| Python | `3.12.13` |
+| MCP Python SDK | `2.1.1` |
+| MCP client | Codex CLI `0.147.0` |
+| Installation | Local source checkout; no PyPI package used |
+| Automation | Registered 32-bit `HWPFrame.HwpObject` worker |
+| Runtime source evidence | Native safe mode `72cda61`; foreground `0436e9a` |
+
+- [x] `hwp_start_new_document` created one new visible unsaved document and did
+      not attach to a pre-existing document.
+- [x] Text preview, apply, and read-back worked for size, bold, and alignment.
+- [x] A non-empty table preview, apply, and read-back worked within documented
+      limits.
+- [x] A dummy profile field was absent from list/preview responses and appeared
       only after approved insertion.
-- [ ] Manual document text change makes an older preview stale.
-- [ ] Immediate Undo succeeds for the latest unchanged safe edit; Undo refuses
+- [x] A manual document-text change made an older preview stale.
+- [x] Immediate Undo succeeded for the latest unchanged safe edit; Undo refused
       after a manual change.
-- [ ] Experimental foreground mode lists and selects only the user-confirmed
-      Hancom window, inserts one short literal string at a collapsed caret, and
-      is disconnected immediately afterward.
-- [ ] No open, save, export, close, delete, or arbitrary-action capability is
-      exposed by the MCP tool list.
+- [x] Experimental foreground mode listed and selected only the user-confirmed
+      disposable Hancom window, inserted `FG-GATE-01` at a collapsed caret, and
+      disconnected immediately afterward.
+- [x] The MCP tool list exposed no open, save, export, close, delete, or
+      arbitrary-action capability.
 
 ## Release decision
 
