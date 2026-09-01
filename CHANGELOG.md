@@ -8,7 +8,7 @@
   manual Hancom 2022 release gate.
 - Documented the safe-mode and experimental foreground connection paths.
 
-## 0.3.0rc1 — source candidate; manual gate recorded (2026-09-02)
+## 0.3.0rc1 — GitHub pre-release `v0.3.0-rc.1` (2026-09-02)
 
 - Recorded the scoped real-Hancom 2022 gate: native safe-mode creation,
   reviewed text/table insertion, dummy-profile privacy, stale-preview refusal,

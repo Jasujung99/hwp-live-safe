@@ -1,6 +1,6 @@
 # HWP Live Safe
 
-> **Pre-release candidate (`0.3.0rc1`; manual gate recorded, GitHub pre-release pending)** — a local, preview-first MCP server for a new visible Hancom Office 2022 document on Windows.
+> **[GitHub pre-release `v0.3.0-rc.1`](https://github.com/Jasujung99/hwp-live-safe/releases/tag/v0.3.0-rc.1) (package version `0.3.0rc1`)** — a local, preview-first MCP server for a new visible Hancom Office 2022 document on Windows.
 
 [Repository](https://github.com/Jasujung99/hwp-live-safe) · [Issues](https://github.com/Jasujung99/hwp-live-safe/issues) · [Security reports](https://github.com/Jasujung99/hwp-live-safe/security/advisories/new)
 
