@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ctypes
 from ctypes import wintypes
 from pathlib import Path
 
@@ -125,6 +126,7 @@ class FakeWindowsUser32:
         self.foreground_checks = 0
         self.activation_calls: list[int] = []
         self.sent_counts: list[int] = []
+        self.input_sizes: list[int] = []
 
     def GetForegroundWindow(self):  # noqa: N802 - Win32 spelling
         # Return a fresh ctypes wrapper each time, as the real Win32 binding does.
@@ -141,6 +143,7 @@ class FakeWindowsUser32:
 
     def SendInput(self, count, _array, _size):  # noqa: N802 - Win32 spelling
         self.sent_counts.append(count)
+        self.input_sizes.append(_size)
         return count
 
 
@@ -165,6 +168,13 @@ def test_windows_foreground_comparison_uses_numeric_hwnd_value(monkeypatch) -> N
 
     assert user32.activation_calls == []
     assert user32.sent_counts == [1]
+    assert user32.input_sizes == [ctypes.sizeof(foreground_module._Input)]
+
+
+def test_native_input_layout_matches_win32_input() -> None:
+    expected_size = 40 if ctypes.sizeof(ctypes.c_void_p) == 8 else 28
+
+    assert ctypes.sizeof(foreground_module._Input) == expected_size
 
 
 def test_windows_foreground_activation_rechecks_numeric_hwnd_value(monkeypatch) -> None:
