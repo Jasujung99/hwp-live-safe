@@ -1,6 +1,6 @@
 # HWP Live Safe
 
-> **Pre-release candidate (`0.3.0rc1`)** — a local, preview-first MCP server for a new visible Hancom Office 2022 document on Windows.
+> **Pre-release candidate (`0.3.0rc1`; manual gate recorded, GitHub pre-release pending)** — a local, preview-first MCP server for a new visible Hancom Office 2022 document on Windows.
 
 [Repository](https://github.com/Jasujung99/hwp-live-safe) · [Issues](https://github.com/Jasujung99/hwp-live-safe/issues) · [Security reports](https://github.com/Jasujung99/hwp-live-safe/security/advisories/new)
 
@@ -61,11 +61,30 @@ Read [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) before using it with an import
 | Fake stdio MCP discovery and 15-tool smoke test | Automated |
 | Wheel contents and `hwp-live-safe` entry point | Automated |
 | Tracked-profile, local-config, path, and token scan | Automated |
-| Real Hancom Office 2022 UI release gate | **Not yet recorded; release remains blocked** |
+| Real Hancom Office 2022 UI release gate | Recorded manually on 2026-09-02 for the scoped configuration below |
 
 See the [release checklist](docs/RELEASE_CHECKLIST.md) for the disposable-document
 test procedure. Existing-file editing is unsupported by design, not an
 unverified capability.
+
+### Manually validated configuration
+
+The release evidence used a new unsaved document and dummy profile data. It
+validates one concrete configuration, not every Windows or Hancom installation.
+The native-safe portion was witnessed at source commit `72cda61`; the later
+foreground-only fixes were witnessed at `0436e9a`. Neither later change touched
+the native COM worker or native safe-mode service path.
+
+| Component | Recorded value |
+|---|---|
+| Windows | Windows 10 Home 22H2, build `22621.4317` |
+| Hancom Office 2022 executable | `12.0.0.850` |
+| Python | `3.12.13` |
+| MCP Python SDK | `2.1.1` |
+| MCP client | Codex CLI `0.147.0` |
+| Automation registration | 32-bit `HWPFrame.HwpObject` |
+| Runtime source evidence | Native safe mode `72cda61`; foreground mode `0436e9a` |
+| Installation | Local source checkout; no PyPI package was used |
 
 ## Requirements
 
@@ -78,7 +97,8 @@ The native safe mode refuses to start while a Hancom window is already open; thi
 
 ## Install from a source checkout
 
-This release candidate is prepared for a public repository; it is not claimed to be a published package registry release yet.
+This release candidate is prepared for a public GitHub pre-release; it is not a
+published package-registry release.
 
 ```powershell
 uv sync --extra dev
@@ -92,7 +112,8 @@ uv tool install .
 
 The installed command is `hwp-live-safe`.
 
-When a registry release exists, the equivalent installation will be `uv tool install hwp-live-safe`.
+Do not use `uv tool install hwp-live-safe` or `pip install hwp-live-safe` by
+package name: the project does not publish to PyPI.
 
 ## Connect an MCP client
 
