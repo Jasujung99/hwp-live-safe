@@ -67,7 +67,8 @@ was re-witnessed at `0436e9a`.
 ## Release decision
 
 - [x] Update `KNOWN_LIMITATIONS.md` with every failed or unverified observation.
-- [ ] Record the verified environment in the HWP AI Bridge compatibility table.
+- [x] Recorded the verified environment in the
+      [HWP AI Bridge compatibility table](https://github.com/Jasujung99/hwp-ai-bridge/blob/v0.1.0/docs/compatibility.md).
 - [x] Confirm private vulnerability reporting and `main` branch protection are
       enabled on GitHub.
 - [x] Confirm the source version is consistent in `pyproject.toml`, `hwp_live`,
