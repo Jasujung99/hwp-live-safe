@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import json
+from ctypes import wintypes
 from pathlib import Path
 
 import pytest
 
-from hwp_live.foreground import FakeForegroundHwpBackend, ForegroundTypingService
+import hwp_live.foreground as foreground_module
+from hwp_live.foreground import (
+    FakeForegroundHwpBackend,
+    ForegroundBackendError,
+    ForegroundTypingService,
+    ForegroundWindow,
+    WindowsForegroundHwpBackend,
+)
 from hwp_live.profile import ProfileStore
 from hwp_live.service import HwpLiveError
 
@@ -101,3 +109,94 @@ def test_foreground_profile_preview_is_redacted_and_profile_change_blocks_apply(
 
     assert caught.value.code == "PROFILE_CHANGED"
     assert backend.typed == []
+
+
+class FakeWindowsUser32:
+    def __init__(
+        self,
+        foreground: int,
+        *,
+        activates: bool = True,
+        foreground_after_first_check: int | None = None,
+    ) -> None:
+        self.foreground = foreground
+        self.activates = activates
+        self.foreground_after_first_check = foreground_after_first_check
+        self.foreground_checks = 0
+        self.activation_calls: list[int] = []
+        self.sent_counts: list[int] = []
+
+    def GetForegroundWindow(self):  # noqa: N802 - Win32 spelling
+        # Return a fresh ctypes wrapper each time, as the real Win32 binding does.
+        self.foreground_checks += 1
+        if self.foreground_checks == 3 and self.foreground_after_first_check is not None:
+            self.foreground = self.foreground_after_first_check
+        return wintypes.HWND(self.foreground)
+
+    def SetForegroundWindow(self, handle):  # noqa: N802 - Win32 spelling
+        self.activation_calls.append(int(handle.value or 0))
+        if self.activates:
+            self.foreground = int(handle.value or 0)
+        return 1
+
+    def SendInput(self, count, _array, _size):  # noqa: N802 - Win32 spelling
+        self.sent_counts.append(count)
+        return count
+
+
+def native_windows_backend(user32: FakeWindowsUser32) -> WindowsForegroundHwpBackend:
+    backend = object.__new__(WindowsForegroundHwpBackend)
+    backend._user32 = user32
+    backend.validate_target = lambda _target: None
+    backend._build_inputs = lambda _text: [foreground_module._Input()]
+    return backend
+
+
+def native_target() -> ForegroundWindow:
+    return ForegroundWindow(handle=101, process_id=202, process_started=303, title="gate.hwp")
+
+
+def test_windows_foreground_comparison_uses_numeric_hwnd_value(monkeypatch) -> None:
+    user32 = FakeWindowsUser32(foreground=101)
+    backend = native_windows_backend(user32)
+    monkeypatch.setattr(foreground_module.time, "sleep", lambda _seconds: None)
+
+    backend.type_text(native_target(), "x")
+
+    assert user32.activation_calls == []
+    assert user32.sent_counts == [1]
+
+
+def test_windows_foreground_activation_rechecks_numeric_hwnd_value(monkeypatch) -> None:
+    user32 = FakeWindowsUser32(foreground=999)
+    backend = native_windows_backend(user32)
+    monkeypatch.setattr(foreground_module.time, "sleep", lambda _seconds: None)
+
+    backend.type_text(native_target(), "x")
+
+    assert user32.activation_calls == [101]
+    assert user32.sent_counts == [1]
+
+
+def test_windows_foreground_activation_fails_closed(monkeypatch) -> None:
+    user32 = FakeWindowsUser32(foreground=999, activates=False)
+    backend = native_windows_backend(user32)
+    monkeypatch.setattr(foreground_module.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(ForegroundBackendError) as caught:
+        backend.type_text(native_target(), "x")
+
+    assert caught.value.outcome_unknown is False
+    assert user32.sent_counts == []
+
+
+def test_windows_foreground_change_before_input_fails_closed(monkeypatch) -> None:
+    user32 = FakeWindowsUser32(foreground=101, foreground_after_first_check=999)
+    backend = native_windows_backend(user32)
+    monkeypatch.setattr(foreground_module.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(ForegroundBackendError) as caught:
+        backend.type_text(native_target(), "x")
+
+    assert caught.value.outcome_unknown is True
+    assert user32.sent_counts == []

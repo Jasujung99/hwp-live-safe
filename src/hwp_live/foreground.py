@@ -204,17 +204,17 @@ class WindowsForegroundHwpBackend:
     def type_text(self, target: ForegroundWindow, text: str) -> None:
         self.validate_target(target)
         handle = wintypes.HWND(target.handle)
-        if self._user32.GetForegroundWindow() != handle:
+        if not self._is_foreground(target.handle):
             self._user32.SetForegroundWindow(handle)
             time.sleep(0.12)
-        if self._user32.GetForegroundWindow() != handle:
+        if not self._is_foreground(target.handle):
             raise ForegroundBackendError(
                 "Windows did not activate the selected Hancom window, so no text was typed."
             )
 
         inputs = self._build_inputs(text)
         for offset in range(0, len(inputs), 128):
-            if self._user32.GetForegroundWindow() != handle:
+            if not self._is_foreground(target.handle):
                 raise ForegroundBackendError(
                     "Foreground changed while typing. The document may contain a partial insertion; "
                     "verify it visually before continuing.",
@@ -229,6 +229,24 @@ class WindowsForegroundHwpBackend:
                     "verify it visually before continuing.",
                     outcome_unknown=True,
                 )
+
+    @staticmethod
+    def _hwnd_value(handle: int | wintypes.HWND | None) -> int:
+        """Normalize ctypes HWND wrappers before comparing their numeric handles.
+
+        Python 3.12's ``c_void_p`` wrappers compare by object identity, so two
+        separately returned ``HWND(101)`` objects are not equal even though they
+        represent the same native window.
+        """
+
+        if handle is None:
+            return 0
+        if isinstance(handle, int):
+            return handle
+        return int(handle.value or 0)
+
+    def _is_foreground(self, target_handle: int) -> bool:
+        return self._hwnd_value(self._user32.GetForegroundWindow()) == target_handle
 
     def _window_from_handle(self, handle: int) -> ForegroundWindow | None:
         native_handle = wintypes.HWND(handle)
