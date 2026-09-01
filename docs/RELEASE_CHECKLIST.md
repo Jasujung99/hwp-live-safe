@@ -72,7 +72,8 @@ was re-witnessed at `0436e9a`.
       enabled on GitHub.
 - [x] Confirm the source version is consistent in `pyproject.toml`, `hwp_live`,
       MCP initialization, and the changelog.
-- [ ] Confirm the final `v0.3.0-rc.1` release notes match the verified manual
+- [x] Confirm the final `v0.3.0-rc.1` release notes match the verified manual
       observations.
-- [ ] Create `v0.3.0-rc.1` as a GitHub pre-release only after this gate passes.
+- [x] Created [`v0.3.0-rc.1`](https://github.com/Jasujung99/hwp-live-safe/releases/tag/v0.3.0-rc.1)
+      as a GitHub pre-release after this gate passed.
 - [x] Do not publish to PyPI during the initial source/Release phase.
