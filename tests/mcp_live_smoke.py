@@ -1,13 +1,10 @@
-"""Optional real Hancom 2022 MCP smoke test.
-
-Run only when no Hancom window is open. It creates one unsaved blank document,
-inserts a short line, verifies it, and undoes the change.
-"""
+"""Optional real Hancom MCP smoke test on a disposable unsaved document."""
 
 from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -26,8 +23,9 @@ async def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
     environment = dict(os.environ)
     environment["PYTHONUTF8"] = "1"
+    environment["PYTHONPATH"] = str(project_root / "src")
     parameters = StdioServerParameters(
-        command=str(project_root / ".venv" / "Scripts" / "python.exe"),
+        command=sys.executable,
         args=["-m", "hwp_live.server"],
         env=environment,
         cwd=project_root,
@@ -46,6 +44,11 @@ async def main() -> None:
                                 "kind": "insert_text",
                                 "text": "HWP Live MCP integration test",
                                 "new_paragraph_after": False,
+                                "style": {
+                                    "font_size_pt": 14,
+                                    "bold": True,
+                                    "align": "center",
+                                },
                             }
                         ],
                         "expected_revision": document["revision"],

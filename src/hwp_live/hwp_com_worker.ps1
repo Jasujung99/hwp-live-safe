@@ -318,6 +318,9 @@ function Insert-Text([string]$Text, [bool]$NewParagraphAfter, $Style, [ref]$Acti
     $restoreParaShape = $false
     $savedCharShape = $null
     $savedParaShape = $null
+    $savedCharHeight = $null
+    $savedCharBold = $null
+    $savedParaAlign = $null
 
     if ($null -ne $Style) {
         $restoreCharShape = (
@@ -329,9 +332,12 @@ function Insert-Text([string]$Text, [bool]$NewParagraphAfter, $Style, [ref]$Acti
         )
         if ($restoreCharShape) {
             $savedCharShape = $script:hwp.CharShape
+            $savedCharHeight = [int]$savedCharShape.Height
+            $savedCharBold = [bool]$savedCharShape.Bold
         }
         if ($restoreParaShape) {
             $savedParaShape = $script:hwp.ParaShape
+            $savedParaAlign = [int]$savedParaShape.AlignType
         }
     }
 
@@ -348,10 +354,21 @@ function Insert-Text([string]$Text, [bool]$NewParagraphAfter, $Style, [ref]$Acti
         if ($restoreCharShape -and $null -ne $savedCharShape) {
             $script:hwp.CharShape = $savedCharShape
             $ActionCount.Value++
+            $restoredCharShape = $script:hwp.CharShape
+            if (
+                [int]$restoredCharShape.Height -ne $savedCharHeight -or
+                [bool]$restoredCharShape.Bold -ne $savedCharBold
+            ) {
+                throw "Hancom did not restore the previous character formatting."
+            }
         }
         if ($restoreParaShape -and $null -ne $savedParaShape) {
             $script:hwp.ParaShape = $savedParaShape
             $ActionCount.Value++
+            $restoredParaShape = $script:hwp.ParaShape
+            if ([int]$restoredParaShape.AlignType -ne $savedParaAlign) {
+                throw "Hancom did not restore the previous paragraph alignment."
+            }
         }
     }
 

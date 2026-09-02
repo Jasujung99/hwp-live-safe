@@ -31,6 +31,8 @@ def test_worker_restores_text_shapes_and_counts_the_restore_actions() -> None:
     assert "$script:hwp.CharShape = $savedCharShape" in WORKER
     assert "$script:hwp.ParaShape = $savedParaShape" in WORKER
     assert "$ActionCount.Value++" in WORKER
+    assert "did not restore the previous character formatting" in WORKER
+    assert "did not restore the previous paragraph alignment" in WORKER
 
 
 def test_worker_exits_new_table_before_later_body_edits() -> None:
