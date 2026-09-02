@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -75,3 +76,12 @@ def test_unexpected_error_does_not_echo_local_exception_text() -> None:
     assert response["ok"] is False
     assert response["error"]["code"] == "UNEXPECTED_ERROR"
     assert "private diagnostic text" not in response["error"]["message"]
+
+
+def test_runtime_messages_do_not_embed_stale_minor_versions() -> None:
+    runtime_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src" / "hwp_live").glob("*.*")
+        if path.suffix in {".py", ".ps1"}
+    )
+    assert re.search(r"(?i)version\s+0\.", runtime_text) is None

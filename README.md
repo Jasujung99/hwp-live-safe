@@ -91,9 +91,15 @@ the native COM worker or native safe-mode service path.
 - Windows
 - Python 3.11 or later
 - [uv](https://docs.astral.sh/uv/)
-- Hancom Office 2022 with the 32-bit `HWPFrame.HwpObject` automation registration available
+- Hancom Office with an accessible `HWPFrame.HwpObject` automation registration
 
-The native safe mode refuses to start while a Hancom window is already open; this prevents accidental attachment to a user document. The experimental foreground mode is separate and does not provide native document attachment.
+The native safe mode may coexist with an already-open Hancom window, but it only
+continues after validating that COM created a distinct, blank, unsaved document
+and a unique new window. Set `HWP_LIVE_SAFE_STRICT_ISOLATION=1` to retain the
+stricter policy that refuses to start while any Hancom process is running. The
+experimental foreground mode is separate and does not provide native document
+attachment. `HWP_LIVE_POWERSHELL_PATH` can select a specific compatible Windows
+PowerShell executable when automatic discovery is unsuitable.
 
 ## Install from a source checkout
 
@@ -179,7 +185,11 @@ $env:PYTHONDONTWRITEBYTECODE = "1"
 .\.venv\Scripts\python.exe tests\mcp_smoke.py
 ```
 
-`tests/mcp_live_smoke.py` is an optional real Hancom smoke test. Run it only on a disposable session with no Hancom window open; it creates an unsaved document, inserts test text and a table, verifies them, and undoes them.
+`tests/mcp_live_smoke.py` is an optional real Hancom smoke test. Run it only on
+a disposable session; it creates an unsaved document, inserts test text and a
+table, verifies that later body text lands outside the table, and undoes the
+final text insertion. The disposable table document remains open and unsaved
+for visual inspection.
 
 ## Security and privacy
 

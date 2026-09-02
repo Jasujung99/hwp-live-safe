@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
@@ -15,8 +16,9 @@ async def main() -> None:
     environment = dict(os.environ)
     environment["HWP_LIVE_BACKEND"] = "fake"
     environment["PYTHONUTF8"] = "1"
+    environment["PYTHONPATH"] = str(project_root / "src")
     parameters = StdioServerParameters(
-        command=str(project_root / ".venv" / "Scripts" / "python.exe"),
+        command=sys.executable,
         args=["-m", "hwp_live.server"],
         env=environment,
         cwd=project_root,

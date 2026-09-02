@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Fixed table insertion so the caret is verified outside the final cell before
+  later body text is accepted.
+- Scoped text size, bold, and alignment to one insertion by restoring the
+  previous character and paragraph shapes afterward.
+- Replaced the 256-step fingerprint Undo loops with the recorded native action
+  count, and refuse automatic Undo whenever document read-back is unverified.
+- Added per-operation worker timeouts, stderr deadlock prevention, and a
+  fail-closed state that prevents duplicate workers after an uncertain timeout.
+- Replaced the process-wide Hancom exclusion with validation of a unique new,
+  blank, unsaved COM-owned window; strict process isolation remains optional.
+- Removed stale runtime version labels and architecture/ROT claims from public
+  guidance while retaining the recorded compatibility evidence.
 - Added Windows/Python 3.11 and 3.12 public-baseline CI, wheel inspection, and
   tracked-file privacy checks.
 - Added repository governance templates, monthly dependency updates, and a

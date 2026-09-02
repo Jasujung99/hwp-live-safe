@@ -1,11 +1,10 @@
 """Experimental, foreground-only typing for a user-selected Hancom window.
 
-Hancom 2022 does not expose a running manually opened document through its COM
-ROT registration on this machine.  This module is intentionally *not* a fake
-document attachment: it can only activate a window the user selected, inject
-literal text at the current visible caret, and report that no read-back is
-available.  It never opens, saves, closes, replaces a selection, or uses an
-arbitrary window handle supplied by an MCP client.
+This mode intentionally does not attach through COM or enumerate the Running
+Object Table. It can only activate a window the user selected, inject literal
+text at the current visible caret, and report that no read-back is available.
+It never opens, saves, closes, replaces a selection, or uses an arbitrary
+window handle supplied by an MCP client.
 """
 
 from __future__ import annotations

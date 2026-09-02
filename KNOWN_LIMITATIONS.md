@@ -34,6 +34,17 @@ existing document remain unverified or unsupported.
   context again and create a new preview.
 - Undo is available only for the immediately preceding unchanged HWP Live Safe
   edit. It intentionally refuses if it cannot verify the expected state.
+- Native mode validates that its COM instance owns exactly one blank, unsaved
+  document represented by a unique new window. It does not attach to any
+  pre-existing window. Set `HWP_LIVE_SAFE_STRICT_ISOLATION=1` when coexistence
+  with another Hancom process is not desired.
+- Worker operations have finite deadlines. After a timeout, the backend refuses
+  to launch a replacement worker until shutdown because the timed-out mutation's
+  outcome may be unknown. Modal Hancom dialogs can therefore require manual
+  inspection and a clean restart.
+- The coexistence, formatting-restoration, table-exit, and modal-timeout changes
+  in `Unreleased` require the next real-Hancom manual release gate; automated
+  tests cover their fail-closed contracts but are not UI compatibility evidence.
 
 ## Experimental foreground typing
 

@@ -1,13 +1,10 @@
-"""Optional real Hancom 2022 MCP smoke test.
-
-Run only when no Hancom window is open. It creates one unsaved blank document,
-inserts a short line, verifies it, and undoes the change.
-"""
+"""Optional real Hancom MCP smoke test on a disposable unsaved document."""
 
 from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -26,8 +23,9 @@ async def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
     environment = dict(os.environ)
     environment["PYTHONUTF8"] = "1"
+    environment["PYTHONPATH"] = str(project_root / "src")
     parameters = StdioServerParameters(
-        command=str(project_root / ".venv" / "Scripts" / "python.exe"),
+        command=sys.executable,
         args=["-m", "hwp_live.server"],
         env=environment,
         cwd=project_root,
@@ -46,6 +44,11 @@ async def main() -> None:
                                 "kind": "insert_text",
                                 "text": "HWP Live MCP integration test",
                                 "new_paragraph_after": False,
+                                "style": {
+                                    "font_size_pt": 14,
+                                    "bold": True,
+                                    "align": "center",
+                                },
                             }
                         ],
                         "expected_revision": document["revision"],
@@ -98,13 +101,42 @@ async def main() -> None:
             )
             table_readback = payload(await session.call_tool("hwp_read_context", {}))
             assert "Example" in table_readback["document"]["text"]
+
+            # Regression: a text edit after a table must land in normal body text,
+            # not in the bottom-right cell left active by TableCreate.
+            continuation_preview = payload(
+                await session.call_tool(
+                    "hwp_preview_edits",
+                    {
+                        "edits": [
+                            {
+                                "kind": "insert_text",
+                                "text": "Text after table",
+                                "new_paragraph_after": False,
+                            }
+                        ],
+                        "expected_revision": table_readback["document"]["revision"],
+                    },
+                )
+            )
+            continuation_receipt = payload(
+                await session.call_tool(
+                    "hwp_apply_preview",
+                    {"plan_id": continuation_preview["preview"]["plan_id"]},
+                )
+            )
+            continuation_readback = payload(await session.call_tool("hwp_read_context", {}))
+            rendered = continuation_readback["document"]["text"]
+            assert "Example" in rendered
+            assert "Text after table" in rendered
+            assert "ExampleText after table" not in rendered
             final = payload(
                 await session.call_tool(
                     "hwp_undo_last",
-                    {"expected_revision": table_receipt["receipt"]["revision"]},
+                    {"expected_revision": continuation_receipt["receipt"]["revision"]},
                 )
             )
-            assert "Example" not in final["document"]["text"]
+            assert "Text after table" not in final["document"]["text"]
             print("Live Hancom MCP smoke test passed")
 
 

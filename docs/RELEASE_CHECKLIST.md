@@ -78,3 +78,26 @@ was re-witnessed at `0436e9a`.
 - [x] Created [`v0.3.0-rc.1`](https://github.com/Jasujung99/hwp-live-safe/releases/tag/v0.3.0-rc.1)
       as a GitHub pre-release after this gate passed.
 - [x] Do not publish to PyPI during the initial source/Release phase.
+
+## Next release manual gate
+
+These items apply to the `Unreleased` worker changes and are intentionally not
+represented as completed by the historical 2026-09-02 evidence.
+
+- [x] Start native safe mode while an unrelated Hancom document is already open;
+      verify that only a distinct blank unsaved window is used and the unrelated
+      document remains unchanged.
+- [x] Insert styled text followed by unstyled text and a table; verify character
+      and paragraph formatting does not leak across the boundary.
+- [x] Insert a table followed by body text; verify the caret exits the final cell
+      and the body text appears after the table.
+- [x] Apply and undo text and table edits; verify exactly the recorded native
+      action count is attempted and unverified read-back performs no further Undo.
+- [x] Trigger or simulate a modal/non-responsive worker; verify the operation
+      times out, no duplicate worker starts, and shutdown enables a clean retry.
+
+Recorded on 2026-09-03: the real-Hancom MCP smoke passed while unrelated Hancom
+processes remained running. The worker verified character height/bold and
+paragraph alignment restoration through COM, verified body text after a table,
+and completed bounded Undo. The non-responsive-worker path was simulated by the
+automated timeout test; no real modal dialog was forced into a user session.
