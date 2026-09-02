@@ -98,13 +98,42 @@ async def main() -> None:
             )
             table_readback = payload(await session.call_tool("hwp_read_context", {}))
             assert "Example" in table_readback["document"]["text"]
+
+            # Regression: a text edit after a table must land in normal body text,
+            # not in the bottom-right cell left active by TableCreate.
+            continuation_preview = payload(
+                await session.call_tool(
+                    "hwp_preview_edits",
+                    {
+                        "edits": [
+                            {
+                                "kind": "insert_text",
+                                "text": "Text after table",
+                                "new_paragraph_after": False,
+                            }
+                        ],
+                        "expected_revision": table_readback["document"]["revision"],
+                    },
+                )
+            )
+            continuation_receipt = payload(
+                await session.call_tool(
+                    "hwp_apply_preview",
+                    {"plan_id": continuation_preview["preview"]["plan_id"]},
+                )
+            )
+            continuation_readback = payload(await session.call_tool("hwp_read_context", {}))
+            rendered = continuation_readback["document"]["text"]
+            assert "Example" in rendered
+            assert "Text after table" in rendered
+            assert "ExampleText after table" not in rendered
             final = payload(
                 await session.call_tool(
                     "hwp_undo_last",
-                    {"expected_revision": table_receipt["receipt"]["revision"]},
+                    {"expected_revision": continuation_receipt["receipt"]["revision"]},
                 )
             )
-            assert "Example" not in final["document"]["text"]
+            assert "Text after table" not in final["document"]["text"]
             print("Live Hancom MCP smoke test passed")
 
 

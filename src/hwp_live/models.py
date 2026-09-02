@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class TextStyle(BaseModel):
-    """Formatting supported for text inserted by version 0.1."""
+    """Formatting supported for an inserted text block."""
 
     font_size_pt: float | None = Field(default=None, ge=1, le=200)
     bold: bool = False
@@ -53,7 +53,7 @@ class DocumentEdit(BaseModel):
         if self.rows is None or self.cols is None:
             raise ValueError("insert_table requires rows and cols.")
         if self.rows * self.cols > 200:
-            raise ValueError("insert_table supports at most 200 cells in version 0.1.")
+            raise ValueError("insert_table supports at most 200 cells.")
         if self.text is not None:
             raise ValueError("insert_table cannot include text.")
         if self.style is not None:
@@ -68,9 +68,7 @@ class DocumentEdit(BaseModel):
         if self.cells is None or not any(
             cell.strip() for row in self.cells for cell in row
         ):
-            raise ValueError(
-                "insert_table requires at least one non-empty cell in version 0.1."
-            )
+            raise ValueError("insert_table requires at least one non-empty cell.")
         return self
 
 

@@ -29,6 +29,12 @@ class HwpLiveError(RuntimeError):
         }
 
 
+def _backend_error_code(exc: BackendError, fallback: str) -> str:
+    """Preserve actionable transport errors without exposing generic internals."""
+
+    return exc.code if exc.code != "HWP_BACKEND_ERROR" else fallback
+
+
 @dataclass(frozen=True)
 class ProfileRequirement:
     profile_id: str
@@ -89,7 +95,7 @@ class HwpLiveService:
         except BackendError as exc:
             return {
                 "ok": False,
-                "error": {"code": "HWP_NOT_READY", "message": str(exc)},
+                "error": {"code": _backend_error_code(exc, "HWP_NOT_READY"), "message": str(exc)},
                 "backend": "powershell-com",
             }
         status.update(
@@ -114,7 +120,7 @@ class HwpLiveService:
         try:
             context = self.backend.start_new_document()
         except BackendError as exc:
-            raise HwpLiveError("HWP_START_FAILED", str(exc)) from exc
+            raise HwpLiveError(_backend_error_code(exc, "HWP_START_FAILED"), str(exc)) from exc
         self._session_id = uuid4().hex
         self._revision = 1
         self._context = context
@@ -226,7 +232,7 @@ class HwpLiveService:
         if len(edits) > 1:
             raise HwpLiveError(
                 "EDIT_BATCH_UNSUPPORTED",
-                "Version 0.2 applies one text block or one table per preview. "
+                "HWP Live applies one text block or one table per preview. "
                 "Create the next preview after the read-back.",
             )
         context, changed = self._refresh_context()
@@ -309,11 +315,20 @@ class HwpLiveService:
         try:
             result = self.backend.apply_edits(list(plan.edits))
         except BackendError as exc:
-            raise HwpLiveError("HWP_APPLY_FAILED", str(exc)) from exc
-        if not result.context.fingerprint:
+            raise HwpLiveError(_backend_error_code(exc, "HWP_APPLY_FAILED"), str(exc)) from exc
+        if not result.context.context_verified or not result.context.fingerprint:
+            self._plans.clear()
+            self._last_receipt = None
             raise HwpLiveError(
                 "READBACK_FAILED",
                 "Hancom applied the change but HWP Live could not read back a document fingerprint.",
+            )
+        if not 1 <= result.native_undo_count <= 512:
+            self._plans.clear()
+            self._last_receipt = None
+            raise HwpLiveError(
+                "UNDO_COUNT_INVALID",
+                "Hancom applied the change but the worker returned an unsafe native Undo count.",
             )
 
         self._context = result.context
@@ -353,7 +368,22 @@ class HwpLiveService:
         try:
             undone = self.backend.undo(receipt.native_undo_count)
         except BackendError as exc:
-            raise HwpLiveError("HWP_UNDO_FAILED", str(exc)) from exc
+            raise HwpLiveError(_backend_error_code(exc, "HWP_UNDO_FAILED"), str(exc)) from exc
+        if (
+            not undone.context_verified
+            or not undone.fingerprint
+            or undone.fingerprint != receipt.before_fingerprint
+        ):
+            self._context = undone
+            self._revision += 1
+            self._plans.clear()
+            self._last_receipt = None
+            raise HwpLiveError(
+                "UNDO_VERIFY_FAILED",
+                "Hancom completed the bounded Undo request, but the document did not match the pre-edit state. "
+                "No further Undo will be attempted automatically.",
+                {"current_revision": self._revision},
+            )
         self._context = undone
         self._revision += 1
         self._plans.clear()
@@ -364,7 +394,7 @@ class HwpLiveService:
         try:
             context = self.backend.read_context()
         except BackendError as exc:
-            raise HwpLiveError("NO_DOCUMENT", str(exc)) from exc
+            raise HwpLiveError(_backend_error_code(exc, "NO_DOCUMENT"), str(exc)) from exc
         if self._context is None:
             self._context = context
             return context, False

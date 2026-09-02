@@ -1,8 +1,8 @@
 """Backends for the small, reviewable HWP-editing vocabulary.
 
-The production backend keeps the Hancom COM object in a 32-bit PowerShell
-worker.  That is deliberate: Hancom Office 2022 on this PC registers a
-32-bit automation server, while Codex's Python runtime is 64-bit.
+The production backend keeps the Hancom COM object in a dedicated Windows
+PowerShell worker. A specific compatible runtime can be selected when required
+by the host's automation registration.
 """
 
 from __future__ import annotations
@@ -10,18 +10,25 @@ from __future__ import annotations
 import atexit
 import hashlib
 import json
+import os
+import queue
+import shutil
 import subprocess
 import threading
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol
 
 from .models import DocumentEdit
 
 
 class BackendError(RuntimeError):
     """A lower-level Hancom or worker failure."""
+
+    def __init__(self, message: str, *, code: str = "HWP_BACKEND_ERROR") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -136,26 +143,49 @@ class FakeHwpBackend:
 
 
 class PowerShellHwpBackend:
-    """Talk to the 32-bit Hancom COM worker using line-delimited JSON."""
+    """Talk to the Hancom COM worker using line-delimited JSON."""
+
+    DEFAULT_TIMEOUTS = {
+        "status": 10.0,
+        "read_context": 10.0,
+        "start_new_document": 60.0,
+        "apply_edits": 60.0,
+        "undo": 60.0,
+        "shutdown": 3.0,
+    }
 
     def __init__(
         self,
         powershell_path: Path | None = None,
         worker_path: Path | None = None,
+        operation_timeouts: Mapping[str, float] | None = None,
     ) -> None:
-        self.powershell_path = powershell_path or Path(
-            r"C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
+        configured_path = os.environ.get("HWP_LIVE_POWERSHELL_PATH")
+        default_path = Path(r"C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe")
+        discovered_path = shutil.which("powershell.exe")
+        self.powershell_path = powershell_path or (
+            Path(configured_path)
+            if configured_path
+            else default_path
+            if default_path.is_file()
+            else Path(discovered_path or r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
         )
         self.worker_path = worker_path or Path(__file__).with_name("hwp_com_worker.ps1")
+        self.operation_timeouts = dict(self.DEFAULT_TIMEOUTS)
+        if operation_timeouts:
+            for operation, timeout in operation_timeouts.items():
+                if timeout <= 0:
+                    raise ValueError(f"Timeout for {operation!r} must be positive.")
+                self.operation_timeouts[operation] = float(timeout)
         self._process: subprocess.Popen[str] | None = None
+        self._stuck_error: BackendError | None = None
         self._lock = threading.RLock()
         atexit.register(self.shutdown)
 
     def _ensure_process(self) -> subprocess.Popen[str]:
         if not self.powershell_path.is_file():
             raise BackendError(
-                "32-bit Windows PowerShell was not found. "
-                "Hancom Office 2022 automation cannot be started."
+                "Windows PowerShell was not found. Hancom automation cannot be started."
             )
         if not self.worker_path.is_file():
             raise BackendError("The HWP COM worker script is missing.")
@@ -176,7 +206,9 @@ class PowerShellHwpBackend:
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # The JSON protocol uses stdout only.  Discarding stderr prevents a
+            # full, unread pipe from deadlocking the worker.
+            stderr=subprocess.DEVNULL,
             text=True,
             encoding="utf-8",
             errors="replace",
@@ -187,6 +219,8 @@ class PowerShellHwpBackend:
 
     def _call(self, operation: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         with self._lock:
+            if self._stuck_error is not None:
+                raise BackendError(str(self._stuck_error), code=self._stuck_error.code)
             process = self._ensure_process()
             if process.stdin is None or process.stdout is None:
                 raise BackendError("The HWP worker has no active communication channel.")
@@ -199,10 +233,34 @@ class PowerShellHwpBackend:
             try:
                 process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
                 process.stdin.flush()
-                response_line = process.stdout.readline()
             except (BrokenPipeError, OSError) as exc:
                 self.shutdown()
                 raise BackendError("The HWP worker unexpectedly stopped.") from exc
+
+            responses: queue.Queue[tuple[str | None, BaseException | None]] = queue.Queue(maxsize=1)
+
+            def read_response() -> None:
+                try:
+                    responses.put((process.stdout.readline(), None))
+                except BaseException as exc:  # pragma: no cover - defensive worker boundary
+                    responses.put((None, exc))
+
+            reader = threading.Thread(target=read_response, daemon=True)
+            reader.start()
+            timeout = self.operation_timeouts.get(operation, 60.0)
+            try:
+                response_line, read_error = responses.get(timeout=timeout)
+            except queue.Empty as exc:
+                error = BackendError(
+                    f"The HWP worker did not respond to {operation!r} within {timeout:g} seconds. "
+                    "Call shutdown before starting a replacement worker.",
+                    code="HWP_WORKER_TIMEOUT",
+                )
+                self._stuck_error = error
+                raise error from exc
+            if read_error is not None:
+                self.shutdown()
+                raise BackendError("The HWP worker response could not be read.") from read_error
 
             if not response_line:
                 self.shutdown()
@@ -213,8 +271,10 @@ class PowerShellHwpBackend:
             try:
                 response = json.loads(response_line)
             except json.JSONDecodeError as exc:
+                self.shutdown()
                 raise BackendError("The HWP worker returned an invalid response.") from exc
             if response.get("id") != request_id:
+                self.shutdown()
                 raise BackendError("The HWP worker response did not match its request.")
             if not response.get("ok"):
                 error = response.get("error") or {}
@@ -222,6 +282,7 @@ class PowerShellHwpBackend:
                 raise BackendError(str(message))
             result = response.get("result")
             if not isinstance(result, dict):
+                self.shutdown()
                 raise BackendError("The HWP worker returned an invalid result.")
             return result
 
@@ -262,6 +323,7 @@ class PowerShellHwpBackend:
         with self._lock:
             process = self._process
             self._process = None
+            self._stuck_error = None
             if process is None:
                 return
             if process.poll() is None:
