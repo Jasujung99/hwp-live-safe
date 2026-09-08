@@ -191,6 +191,18 @@ table, verifies that later body text lands outside the table, and undoes the
 final text insertion. The disposable table document remains open and unsaved
 for visual inspection.
 
+### Interactive native release gate
+
+The opt-in [native release gate](scripts/native_release_gate.py) promotes the
+reusable part of a local manual probe. Run `python scripts/native_release_gate.py --live`
+in this project's MCP 2.x environment on Windows. It requires explicit `YES`
+checkpoints for a new disposable document, formatting, table, stale preview, and
+guarded Undo checks. It reads no personal profiles, selects no foreground window,
+and does not open/save/close documents. The unsaved test document is left for
+manual inspection and cleanup. Fake-backend tests verify the gate's sequence;
+they do **not** certify live rendering. Profile/foreground gates remain separate.
+See [integration boundaries and evidence](docs/INTEGRATION_BOUNDARY.md).
+
 ## Security and privacy
 
 See [SECURITY.md](SECURITY.md). HWP Live Safe itself uses local stdio and does not make network calls. Your MCP client may still send tool results or document text to a model provider, so the end-to-end privacy boundary depends on the client and provider you choose.
