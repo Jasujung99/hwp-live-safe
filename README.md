@@ -72,8 +72,10 @@ unverified capability.
 The release evidence used a new unsaved document and dummy profile data. It
 validates one concrete configuration, not every Windows or Hancom installation.
 The native-safe portion was witnessed at source commit `72cda61`; the later
-foreground-only fixes were witnessed at `0436e9a`. Neither later change touched
-the native COM worker or native safe-mode service path.
+foreground-only fixes were witnessed at `0436e9a`. Neither of those tagged-release
+changes touched the native COM worker or native safe-mode service path. This PR
+does change the worker: its new synthetic native checks are described below, and
+the interactive visual gate has not been repeated at this PR head.
 
 | Component | Recorded value |
 |---|---|
