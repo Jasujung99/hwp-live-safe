@@ -72,8 +72,10 @@ unverified capability.
 The release evidence used a new unsaved document and dummy profile data. It
 validates one concrete configuration, not every Windows or Hancom installation.
 The native-safe portion was witnessed at source commit `72cda61`; the later
-foreground-only fixes were witnessed at `0436e9a`. Neither later change touched
-the native COM worker or native safe-mode service path.
+foreground-only fixes were witnessed at `0436e9a`. Neither of those tagged-release
+changes touched the native COM worker or native safe-mode service path. This PR
+does change the worker: its new synthetic native checks are described below, and
+the interactive visual gate has not been repeated at this PR head.
 
 | Component | Recorded value |
 |---|---|
@@ -190,6 +192,30 @@ a disposable session; it creates an unsaved document, inserts test text and a
 table, verifies that later body text lands outside the table, and undoes the
 final text insertion. The disposable table document remains open and unsaved
 for visual inspection.
+
+### Interactive native release gate
+
+The opt-in [native release gate](scripts/native_release_gate.py) promotes the
+reusable part of a local manual probe. Run `python scripts/native_release_gate.py --live`
+in this project's MCP 2.x environment on Windows. It requires explicit `YES`
+checkpoints for a new disposable document, formatting, table, stale preview, and
+guarded Undo checks. It reads no personal profiles, selects no foreground window,
+and does not open/save/close documents. The unsaved test document is left for
+manual inspection and cleanup. The gate prints its document ID; after a
+successful run, identify the new window by `MANUAL-STALE`, `UNDO-GATE`, and
+`MANUAL-UNDO`, then close only that window without saving. If the window cannot
+be identified, leave it open. Fake-backend tests verify the gate's sequence;
+they do **not** certify live rendering. Profile/foreground gates remain separate.
+See [integration boundaries and evidence](docs/INTEGRATION_BOUNDARY.md).
+
+For an unattended native contract check, run
+`python scripts/native_external_change_gate.py --live` on Windows. It creates
+one separate unsaved synthetic document, verifies preview/apply/Undo, then
+changes that same document through the native backend outside the preview
+service. Stale preview and Undo must both refuse that change. This checks the
+native revision guard; it does not confirm visual layout or simulate manual
+typing. The script prints its document ID and remaining markers so its window
+can be identified and closed manually without saving.
 
 ## Security and privacy
 

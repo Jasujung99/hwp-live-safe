@@ -9,6 +9,7 @@ $OutputEncoding = [Console]::OutputEncoding
 
 $script:hwp = $null
 $script:documentId = $null
+$script:ownedDocumentIdentity = $null
 $script:shadowText = ""
 $script:shadowUndo = New-Object System.Collections.Generic.List[string]
 $script:lastBeforeFingerprint = $null
@@ -91,9 +92,36 @@ function Test-StrictIsolation {
     )
 }
 
+function Get-ComIdentity($Value) {
+    $unknown = [System.Runtime.InteropServices.Marshal]::GetIUnknownForObject($Value)
+    try {
+        return $unknown.ToInt64()
+    }
+    finally {
+        [void][System.Runtime.InteropServices.Marshal]::Release($unknown)
+    }
+}
+
 function Require-Hwp {
     if ($null -eq $script:hwp -or [string]::IsNullOrWhiteSpace($script:documentId)) {
         throw "No automation-owned Hancom document is open. Start a new document first."
+    }
+    if ($null -eq $script:ownedDocumentIdentity) {
+        throw "The automation-owned document identity is unavailable."
+    }
+    try {
+        if ([int]$script:hwp.XHwpDocuments.Count -ne 1) {
+            throw "The COM instance no longer has exactly one document."
+        }
+        $activeDocument = $script:hwp.XHwpDocuments.Active_XHwpDocument
+        if ($null -eq $activeDocument -or
+            -not [string]::IsNullOrWhiteSpace([string]$activeDocument.FullName) -or
+            (Get-ComIdentity $activeDocument) -ne $script:ownedDocumentIdentity) {
+            throw "The active document is not the original unsaved document."
+        }
+    }
+    catch {
+        throw "Automation-owned document validation failed: $($_.Exception.Message)"
     }
 }
 
@@ -234,12 +262,14 @@ function Start-NewDocument {
         if ($null -eq $ownedHandle) {
             throw "The new COM instance could not be matched to a unique new Hancom window."
         }
+        $script:ownedDocumentIdentity = Get-ComIdentity $document
     }
     catch {
         # Never close a document when ownership validation fails: releasing our
         # reference is safer than risking a user-owned window.
         $message = $_.Exception.Message
         $script:hwp = $null
+        $script:ownedDocumentIdentity = $null
         throw "Hancom ownership validation failed: $message"
     }
 

@@ -6,6 +6,7 @@ import asyncio
 import os
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
@@ -20,10 +21,17 @@ def payload(result: CallToolResult) -> dict[str, Any]:
 
 
 async def main() -> None:
+    with TemporaryDirectory(prefix="hwp-safe-native-smoke-") as profile_dir:
+        await run_smoke(profile_dir)
+
+
+async def run_smoke(profile_dir: str) -> None:
     project_root = Path(__file__).resolve().parents[1]
     environment = dict(os.environ)
     environment["PYTHONUTF8"] = "1"
     environment["PYTHONPATH"] = str(project_root / "src")
+    environment["HWP_LIVE_SAFE_PROFILE_DIR"] = profile_dir
+    environment["HWP_LIVE_BACKEND"] = "powershell-com"
     parameters = StdioServerParameters(
         command=sys.executable,
         args=["-m", "hwp_live.server"],
@@ -35,6 +43,13 @@ async def main() -> None:
             await session.initialize()
             started = payload(await session.call_tool("hwp_start_new_document", {}))
             document = started["document"]
+            assert document["unsaved"] is True and document["context_verified"] is True
+            print(f"Owned disposable document ID: {document['document_id']}")
+            print("This smoke test leaves its new unsaved window open; do not close another Hancom window.")
+            readback = payload(await session.call_tool("hwp_read_context", {}))["document"]
+            assert readback["document_id"] == document["document_id"]
+            assert readback["context_verified"] is True
+            document = readback
             previewed = payload(
                 await session.call_tool(
                     "hwp_preview_edits",
@@ -138,6 +153,7 @@ async def main() -> None:
             )
             assert "Text after table" not in final["document"]["text"]
             print("Live Hancom MCP smoke test passed")
+            print("Identify the window by the 2 by 2 Field/Value and Name/Example table, then close only it without saving.")
 
 
 if __name__ == "__main__":
