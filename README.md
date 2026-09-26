@@ -199,9 +199,21 @@ in this project's MCP 2.x environment on Windows. It requires explicit `YES`
 checkpoints for a new disposable document, formatting, table, stale preview, and
 guarded Undo checks. It reads no personal profiles, selects no foreground window,
 and does not open/save/close documents. The unsaved test document is left for
-manual inspection and cleanup. Fake-backend tests verify the gate's sequence;
+manual inspection and cleanup. The gate prints its document ID; after a
+successful run, identify the new window by `MANUAL-STALE`, `UNDO-GATE`, and
+`MANUAL-UNDO`, then close only that window without saving. If the window cannot
+be identified, leave it open. Fake-backend tests verify the gate's sequence;
 they do **not** certify live rendering. Profile/foreground gates remain separate.
 See [integration boundaries and evidence](docs/INTEGRATION_BOUNDARY.md).
+
+For an unattended native contract check, run
+`python scripts/native_external_change_gate.py --live` on Windows. It creates
+one separate unsaved synthetic document, verifies preview/apply/Undo, then
+changes that same document through the native backend outside the preview
+service. Stale preview and Undo must both refuse that change. This checks the
+native revision guard; it does not confirm visual layout or simulate manual
+typing. The script prints its document ID and remaining markers so its window
+can be identified and closed manually without saving.
 
 ## Security and privacy
 

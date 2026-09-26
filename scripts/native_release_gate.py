@@ -27,23 +27,44 @@ def checked(result: dict[str, Any], key: str) -> dict[str, Any]:
     return result[key]
 
 
-async def run_gate(call: Call, checkpoint: Callable[[str], None] = confirm) -> dict[str, bool]:
+async def run_gate(call: Call, checkpoint: Callable[[str], None] = confirm) -> dict[str, Any]:
     checkpoint("Create one NEW disposable unsaved Hancom document; existing documents are not targets")
     started = checked(await call("hwp_start_new_document", {}), "document")
+    document_id = started.get("document_id")
+    if not isinstance(document_id, str) or not document_id:
+        raise RuntimeError("New document has no verifiable identity")
+    print(f"Owned disposable document ID: {document_id}")
+    print("Identify its window by the synthetic markers inserted during this gate; never close another window.")
+    if started.get("unsaved") is not True or started.get("context_verified") is not True:
+        raise RuntimeError("New document is not an unsaved, verified document")
     if started["text"].strip():
         raise RuntimeError("New document is not empty")
     checkpoint("Confirm the NEW blank document is visible")
 
+    async def read_document() -> dict[str, Any]:
+        document = checked(await call("hwp_read_context", {}), "document")
+        if document.get("document_id") != document_id:
+            raise RuntimeError("The active document is no longer the new test document")
+        if document.get("unsaved") is not True or document.get("context_verified") is not True:
+            raise RuntimeError("The test document is no longer unsaved and verifiably readable")
+        return document
+
     async def preview(edit: dict[str, Any]) -> dict[str, Any]:
-        context = checked(await call("hwp_read_context", {}), "document")
-        return checked(await call("hwp_preview_edits", {
+        context = await read_document()
+        plan = checked(await call("hwp_preview_edits", {
             "edits": [edit], "expected_revision": context["revision"],
         }), "preview")
+        if plan.get("expected_revision") != context["revision"]:
+            raise RuntimeError("Preview revision does not match the verified document")
+        return plan
 
     async def apply(edit: dict[str, Any], label: str) -> dict[str, Any]:
         plan = await preview(edit)
         checkpoint(label)
-        return checked(await call("hwp_apply_preview", {"plan_id": plan["plan_id"]}), "receipt")
+        receipt = checked(await call("hwp_apply_preview", {"plan_id": plan["plan_id"]}), "receipt")
+        if receipt.get("revision") != plan["expected_revision"] + 1:
+            raise RuntimeError("Apply did not advance the preview revision exactly once")
+        return receipt
 
     for edit, marker, label in [
         ({"kind": "insert_text", "text": "SYNTHETIC GATE", "new_paragraph_after": False,
@@ -55,11 +76,15 @@ async def run_gate(call: Call, checkpoint: Callable[[str], None] = confirm) -> d
          "GATE CELL", "Approve the synthetic 2 by 2 table"),
     ]:
         receipt = await apply(edit, label)
-        context = checked(await call("hwp_read_context", {}), "document")
+        context = await read_document()
         if marker not in context["text"]:
             raise RuntimeError("Inserted text is missing")
         checkpoint("Verify visible formatting/table and confirm immediate Undo; do not edit manually yet")
         undone = checked(await call("hwp_undo_last", {"expected_revision": receipt["revision"]}), "document")
+        if undone.get("document_id") != document_id or undone.get("context_verified") is not True:
+            raise RuntimeError("Undo did not return the verified test document")
+        if undone.get("revision") != receipt["revision"] + 1:
+            raise RuntimeError("Undo did not advance the document revision exactly once")
         if marker in undone["text"]:
             raise RuntimeError("Undo did not remove the synthetic edit")
 
@@ -68,7 +93,7 @@ async def run_gate(call: Call, checkpoint: Callable[[str], None] = confirm) -> d
     rejected = await call("hwp_apply_preview", {"plan_id": stale["plan_id"]})
     if rejected.get("ok") is not False or rejected.get("error", {}).get("code") != "DOCUMENT_CHANGED":
         raise RuntimeError("Stale preview was not rejected")
-    context = checked(await call("hwp_read_context", {}), "document")
+    context = await read_document()
     if "MUST-NOT-APPEAR" in context["text"] or "MANUAL-STALE" not in context["text"]:
         raise RuntimeError("Stale-preview readback failed")
 
@@ -78,10 +103,10 @@ async def run_gate(call: Call, checkpoint: Callable[[str], None] = confirm) -> d
     rejected = await call("hwp_undo_last", {"expected_revision": receipt["revision"]})
     if rejected.get("ok") is not False or rejected.get("error", {}).get("code") != "DOCUMENT_CHANGED":
         raise RuntimeError("Unsafe Undo was not rejected")
-    context = checked(await call("hwp_read_context", {}), "document")
+    context = await read_document()
     if not all(marker in context["text"] for marker in ("UNDO-GATE", "MANUAL-UNDO")):
         raise RuntimeError("Guarded Undo did not preserve manual edits")
-    return {"native_contract_passed": True, "visual_checks_user_confirmed": True,
+    return {"contract_sequence_passed": True, "owned_document_id": document_id,
             "profile_tested": False, "foreground_tested": False}
 
 
@@ -112,8 +137,15 @@ async def main() -> None:
                         raise RuntimeError("MCP transport result failed")
                     return dict(result.structured_content)
 
-                print(await run_gate(call))
-    print("Disposable document remains unsaved. Inspect and close it manually; no cleanup tool is invoked.")
+                try:
+                    result = await run_gate(call)
+                    print({**result, "native_contract_passed": True,
+                           "visual_checkpoints_acknowledged": True})
+                finally:
+                    print("If the gate created a document, leave this terminal open and inspect the new unsaved Hancom window.")
+                    print("On a completed gate, match MANUAL-STALE, UNDO-GATE, and MANUAL-UNDO in that window before closing it without saving.")
+                    print("The earlier SYNTHETIC GATE heading and GATE CELL table are undone by the gate.")
+                    print("If the window cannot be identified confidently, leave it open; no cleanup tool is invoked.")
 
 
 if __name__ == "__main__":

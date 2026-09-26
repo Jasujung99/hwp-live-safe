@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import email.parser
 import sys
 import tarfile
@@ -14,12 +15,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dist-dir", type=Path, default=ROOT / "dist")
+    args = parser.parse_args()
     with (ROOT / "pyproject.toml").open("rb") as handle:
         project = tomllib.load(handle)["project"]
 
     version = project["version"]
-    wheels = sorted((ROOT / "dist").glob(f"hwp_live_safe-{version}-*.whl"))
-    sdists = sorted((ROOT / "dist").glob(f"hwp_live_safe-{version}.tar.gz"))
+    wheels = sorted(args.dist_dir.glob(f"hwp_live_safe-{version}-*.whl"))
+    sdists = sorted(args.dist_dir.glob(f"hwp_live_safe-{version}.tar.gz"))
     if len(wheels) != 1:
         print(f"Expected one wheel for {version}, found {len(wheels)}", file=sys.stderr)
         return 1

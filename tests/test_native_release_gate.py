@@ -14,7 +14,7 @@ gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
 
 
-def test_gate_exercises_native_contract_without_user_profiles_or_windows():
+def make_fake_session():
     backend = FakeHwpBackend()
     service = HwpLiveService(backend)
     calls = []
@@ -38,17 +38,60 @@ def test_gate_exercises_native_contract_without_user_profiles_or_windows():
         except HwpLiveError as exc:
             return exc.as_dict()
 
+    return backend, calls, call
+
+
+def test_gate_exercises_contract_sequence_without_claiming_native_or_visual_evidence():
+    backend, calls, call = make_fake_session()
+
     def checkpoint(message):
         if "manually type MANUAL-STALE" in message:
-            backend.mutate_externally(backend.text + "MANUAL-STALE")
+            backend.mutate_externally("MANUAL-STALE")
         if "manually type MANUAL-UNDO" in message:
-            backend.mutate_externally(backend.text + "MANUAL-UNDO")
+            backend.mutate_externally("MANUAL-UNDO")
 
     result = asyncio.run(gate.run_gate(call, checkpoint))
-    assert result["native_contract_passed"]
+    assert result["contract_sequence_passed"]
+    assert result["owned_document_id"] == backend.document_id
+    assert "native_contract_passed" not in result
+    assert "visual_checkpoints_acknowledged" not in result
     assert not result["profile_tested"] and not result["foreground_tested"]
     assert calls[0] == "hwp_start_new_document"
     assert backend.save_call_count == 0
+
+
+@pytest.mark.parametrize("changed_field", ["document_id", "context_verified", "unsaved"])
+def test_gate_stops_if_owned_document_cannot_be_verified(changed_field):
+    _, calls, call = make_fake_session()
+
+    async def invalid_read(name, args):
+        response = await call(name, args)
+        if name == "hwp_read_context":
+            document = response["document"]
+            document[changed_field] = (
+                "different-document" if changed_field == "document_id" else False
+            )
+        return response
+
+    with pytest.raises(RuntimeError, match="document|verifiably readable"):
+        asyncio.run(gate.run_gate(invalid_read, lambda _: None))
+    assert "hwp_preview_edits" not in calls
+    assert "hwp_apply_preview" not in calls
+
+
+def test_gate_refuses_an_apply_receipt_with_an_inconsistent_revision():
+    _, calls, call = make_fake_session()
+
+    async def invalid_receipt(name, args):
+        response = await call(name, args)
+        if name == "hwp_apply_preview":
+            response["receipt"]["revision"] += 1
+        return response
+
+    with pytest.raises(RuntimeError, match="Apply did not advance"):
+        asyncio.run(gate.run_gate(invalid_receipt, lambda _: None))
+    assert "hwp_apply_preview" in calls
+    assert "hwp_undo_last" not in calls
 
 
 def test_cancel_before_start_makes_no_calls():
